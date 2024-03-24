@@ -18,7 +18,6 @@ const createTokenPair = async (payload, publicKey, privateKey) => {
         const accessToken = await JWT.sign(payload, publicKey, {
             // algorithm: 'RS256', sử dụng với asymmetric cryptography
             expiresIn: '2 days',
-
         })
 
         const refreshToken = await JWT.sign(payload, privateKey, {
