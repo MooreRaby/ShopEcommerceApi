@@ -151,7 +151,7 @@ class DiscountService {
             },
         });
 
-        console.log(foundDiscount,'xyz');
+        console.log(foundDiscount, 'xyz');
 
         if (!discount) throw new NotFoundError(`discount doesn't exist`);
 
@@ -187,21 +187,16 @@ class DiscountService {
         if (discount_max_uses_per_user > 0) {
             const userDiscount = discount_users_used.find(user => user.userId === userId);
             if (userDiscount) {
-                // Người dùng đã sử dụng mã giảm giá này trước đó
+                // Check if the user has already used the maximum allowed times
                 if (userDiscount.usedCount >= discount_max_uses_per_user) {
-                    throw new Error('Bạn đã sử dụng mã giảm giá này quá số lần cho phép.');
+                    throw new BadRequestError("You have already used the maximum allowed times for this discount.");
                 } else {
-                    // Tăng số lần sử dụng mã giảm giá cho người dùng hiện tại lên 1
+                    // Update the user's used count for the discount
                     userDiscount.usedCount++;
-                    // Lưu lại thông tin đã cập nhật
-                    await userDiscount.save();
-                    // Tiếp tục xử lý
                 }
             } else {
-                // Người dùng chưa từng sử dụng mã giảm giá này trước đó
-                // Tạo mới thông tin mã giảm giá cho người dùng hiện tại và đặt số lần sử dụng là 1
-                // await discount_users_used.create({ userId: userId, usedCount: 1 });
-                // Tiếp tục xử lý
+                // User hasn't used the discount before, add it to the users_used array
+                discount_users_used.push({ userId: userId, usedCount: 1 });
             }
         }
 
@@ -228,14 +223,14 @@ class DiscountService {
         const foundDiscount = await checkDiscountExists({
             model: discount,
             filter: {
-                
+
                 discount_code: codeId,
                 discount_shopId: convertToObjectIdMongodb(shopId),
             }
         })
 
         if (!foundDiscount) throw new NotFoundError(`discount doesn't exists`)
-        
+
         const result = await discount.findByIdAndUpdate(foundDiscount._id, {
             $pull: {
                 discount_users_used: userId,
