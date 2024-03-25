@@ -7,6 +7,7 @@ const { findAllProducts } = require("./product.service.xxx");
 const {
     findAllDiscountCodesUnSelect,
     checkDiscountExists,
+    findAllDiscountCodesSelect,
 } = require("../models/repositories/discount.repo");
 
 class DiscountService {
@@ -24,6 +25,7 @@ class DiscountService {
             description,
             type,
             value,
+            users_used,
             max_value,
             max_uses,
             uses_count,
@@ -127,14 +129,14 @@ class DiscountService {
     }
 
     static async getAllDiscountCodesByShop({ limit, page, shopId }) {
-        const discounts = await findAllDiscountCodesUnSelect({
+        const discounts = await findAllDiscountCodesSelect({
             limit: +limit,
             page: +page,
             filter: {
                 discount_shopId: convertToObjectIdMongodb(shopId),
                 discount_is_active: true,
             },
-            unSelect: [ "__v", "discount_shopId" ],
+            select: [ "discount_code", "discount_name" ],
             model: discount,
         });
         return discounts;
@@ -149,11 +151,19 @@ class DiscountService {
             },
         });
 
+        console.log(foundDiscount,'xyz');
+
         if (!discount) throw new NotFoundError(`discount doesn't exist`);
 
         const { discount_is_active, discount_max_uses,
             discount_min_order_value,
-            discount_users_used } = foundDiscount;
+            discount_users_used,
+            discount_start_date,
+            discount_end_date,
+            discount_max_uses_per_user,
+            discount_type,
+            discount_value
+        } = foundDiscount;
 
         if (!discount_is_active) throw new NotFoundError(`discount expried!`)
         if (!discount_max_uses) throw new NotFoundError(`discount are out!`)
@@ -175,9 +185,23 @@ class DiscountService {
         }
 
         if (discount_max_uses_per_user > 0) {
-            const userUserDiscount = discount_users_used.find(user => user.userId === userId)
-            if (userUserDiscount) {
-                // ....
+            const userDiscount = discount_users_used.find(user => user.userId === userId);
+            if (userDiscount) {
+                // Người dùng đã sử dụng mã giảm giá này trước đó
+                if (userDiscount.usedCount >= discount_max_uses_per_user) {
+                    throw new Error('Bạn đã sử dụng mã giảm giá này quá số lần cho phép.');
+                } else {
+                    // Tăng số lần sử dụng mã giảm giá cho người dùng hiện tại lên 1
+                    userDiscount.usedCount++;
+                    // Lưu lại thông tin đã cập nhật
+                    await userDiscount.save();
+                    // Tiếp tục xử lý
+                }
+            } else {
+                // Người dùng chưa từng sử dụng mã giảm giá này trước đó
+                // Tạo mới thông tin mã giảm giá cho người dùng hiện tại và đặt số lần sử dụng là 1
+                // await discount_users_used.create({ userId: userId, usedCount: 1 });
+                // Tiếp tục xử lý
             }
         }
 
@@ -187,7 +211,44 @@ class DiscountService {
         return {
             totalOrder,
             discount: amount,
-            totalPrice: totalOrder * amount
+            totalPrice: totalOrder - amount
         }
     }
+
+    static async deleteDiscountCode({ shopId, codeId }) {
+        const deleted = await discount.findOneAndDelete({
+            discount_code: codeId,
+            discount_shopId: convertToObjectIdMongodb(shopId),
+        })
+
+        return deleted
+    }
+
+    static async cancelDiscountCode({ codeId, shopId, userId }) {
+        const foundDiscount = await checkDiscountExists({
+            model: discount,
+            filter: {
+                
+                discount_code: codeId,
+                discount_shopId: convertToObjectIdMongodb(shopId),
+            }
+        })
+
+        if (!foundDiscount) throw new NotFoundError(`discount doesn't exists`)
+        
+        const result = await discount.findByIdAndUpdate(foundDiscount._id, {
+            $pull: {
+                discount_users_used: userId,
+            },
+            $inc: {
+                discount_max_uses: 1,
+                discount_uses_count: -1
+            }
+        })
+
+        return result
+    }
 }
+
+
+module.exports = DiscountService;
