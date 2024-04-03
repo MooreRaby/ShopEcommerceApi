@@ -47,6 +47,25 @@ class AccessController {
        }).send(res)
 
     }
+
+    forgotPassword = async (req, res, next) => {
+        new SuccessResponse({
+            message: 'Reset password successfully',
+            metadata: await AccessService.forgotPassword(req.body)
+        }).send(res)
+    }
+
+    resetPassword = async (req, res, next) => {
+
+    }
+
+    sendVerificationEmail = async (req, res, next) => {
+
+    }
+
+    verifyEmail = async (req, res, next) => {
+        
+    }
 }
 
 module.exports = new AccessController()

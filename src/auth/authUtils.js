@@ -15,14 +15,14 @@ const HEADER = {
 const createTokenPair = async (payload, publicKey, privateKey) => {
     try {
         //access token
-        const accessToken = await JWT.sign(payload, publicKey, {
+        const accessToken = await JWT.sign(payload, privateKey, {
             // algorithm: 'RS256', sử dụng với asymmetric cryptography
-            expiresIn: '2 days',
+            expiresIn: '2h',
         })
 
         const refreshToken = await JWT.sign(payload, privateKey, {
             // algorithm: 'RS256', sử dụng với asymmetric cryptography
-            expiresIn: '10 days',
+            expiresIn: '2M',
         })
 
         JWT.verify(accessToken, publicKey, (err, decode) => {
@@ -35,43 +35,43 @@ const createTokenPair = async (payload, publicKey, privateKey) => {
 
         return { accessToken, refreshToken }
     } catch (error) {
-
+        throw new Error(`Error verifying:: ${error.message}`)
     }
 }
 
-const authentication = asyncHandler(async (req, res, next) => {
-    /*
-       1. check userId missing
-       2. get access token
-       3. verify access token
-       4. check user in db
-       5. check keystore with this userId 
-       6. return next
-    */
-    const userId = req.headers[ HEADER.CLIENT_ID ]
-    console.log(userId)
-    if (!userId) throw new AuthFailureError('INVALID REQUEST1')
+// const authentication = asyncHandler(async (req, res, next) => {
+//     /*
+//        1. check userId missing
+//        2. get access token
+//        3. verify access token
+//        4. check user in db
+//        5. check keystore with this userId 
+//        6. return next
+//     */
+//     const userId = req.headers[ HEADER.CLIENT_ID ]
+//     console.log(userId)
+//     if (!userId) throw new AuthFailureError('INVALID REQUEST1')
 
-    //2
-    const keyStore = await findByUserId(userId)
-    if (!keyStore) throw new NotFoundError('Not found keyStore')
+//     //2
+//     const keyStore = await findByUserId(userId)
+//     if (!keyStore) throw new NotFoundError('Not found keyStore')
 
-    //3
-    const accessToken = req.headers[ HEADER.AUTHORIZATION ]
-    if (!accessToken) throw new AuthFailureError('INVALID REQUEST2')
-
-
-    try {
-        const decodeUser = JWT.verify(accessToken, keyStore.publicKey)
-        if (userId !== decodeUser.userId) throw new AuthFailureError('Invalid userId')
-        req.keyStore = keyStore
+//     //3
+//     const accessToken = req.headers[ HEADER.AUTHORIZATION ]
+//     if (!accessToken) throw new AuthFailureError('INVALID REQUEST2')
 
 
-        return next()
-    } catch (error) {
-        throw error
-    }
-})
+//     try {
+//         const decodeUser = JWT.verify(accessToken, keyStore.publicKey)
+//         if (userId !== decodeUser.userId) throw new AuthFailureError('Invalid userId')
+//         req.keyStore = keyStore
+
+
+//         return next()
+//     } catch (error) {
+//         throw error
+//     }
+// })
 
 
 
@@ -121,13 +121,37 @@ const authenticationV2 = asyncHandler(async (req, res, next) => {
 
 })
 
+const generateKeyPair = async () => {
+    return new Promise((resolve, reject) => {
+        generateKeyPair('rsa', {
+            modulusLength: 2048, // Adjust as needed
+            publicKeyEncoding: {
+                type: 'spki',
+                format: 'pem'
+            },
+            privateKeyEncoding: {
+                type: 'pkcs8',
+                format: 'pem'
+            }
+        }, (err, publicKey, privateKey) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve({ publicKey, privateKey });
+            }
+        });
+    });
+}
+
+
 const verifyJWT = async (token, keySecret) => {
     return await JWT.verify(token, keySecret)
 }
 
 module.exports = {
     createTokenPair,
-    authentication,
+    // authentication,
     verifyJWT,
-    authenticationV2
+    authenticationV2,
+    generateKeyPair
 }
