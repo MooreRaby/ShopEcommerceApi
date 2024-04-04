@@ -4,6 +4,7 @@ const JWT = require('jsonwebtoken');
 const { asyncHandler } = require('../helpers/asyncHandler');
 const { AuthFailureError, NotFoundError } = require('../core/error.response');
 const { findByUserId } = require('../services/keyToken.service');
+const { generateKeyPairSync } = require('node:crypto');
 
 const HEADER = {
     API_KEY: 'x-api-key',
@@ -16,13 +17,16 @@ const createTokenPair = async (payload, publicKey, privateKey) => {
     try {
         //access token
         const accessToken = await JWT.sign(payload, privateKey, {
-            // algorithm: 'RS256', sử dụng với asymmetric cryptography
+            algorithm: 'RS256', //sử dụng với asymmetric cryptography
             expiresIn: '2h',
+
         })
 
         const refreshToken = await JWT.sign(payload, privateKey, {
-            // algorithm: 'RS256', sử dụng với asymmetric cryptography
+            algorithm: 'RS256', //sử dụng với asymmetric cryptography
+
             expiresIn: '2M',
+
         })
 
         JWT.verify(accessToken, publicKey, (err, decode) => {
@@ -108,9 +112,9 @@ const authenticationV2 = asyncHandler(async (req, res, next) => {
     if (!accessToken) throw new AuthFailureError('Invalid Request')
     try {
         console.log(accessToken, "xxxxxxxx  ")
-        console.log( keyStore.publicKey, " yyyyyyyyyyy ")
+        console.log(keyStore.publicKey, " yyyyyyyyyyy ")
 
-        const decodeUser = JWT.verify(accessToken, keyStore.publicKey )
+        const decodeUser = JWT.verify(accessToken, keyStore.publicKey)
         if (userId !== decodeUser.userId) throw new AuthFailureError(' Invalid Userid')
         req.keyStore = keyStore
         req.user = decodeUser // {userId, email}
@@ -122,25 +126,27 @@ const authenticationV2 = asyncHandler(async (req, res, next) => {
 })
 
 const generateKeyPair = async () => {
-    return new Promise((resolve, reject) => {
-        generateKeyPair('rsa', {
-            modulusLength: 2048, // Adjust as needed
-            publicKeyEncoding: {
-                type: 'spki',
-                format: 'pem'
-            },
-            privateKeyEncoding: {
-                type: 'pkcs8',
-                format: 'pem'
-            }
-        }, (err, publicKey, privateKey) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve({ publicKey, privateKey });
-            }
-        });
+    const {
+        publicKey,
+        privateKey,
+    } = generateKeyPairSync('rsa', {
+        modulusLength: 2048,
+        publicKeyEncoding: {
+            type: 'spki',
+            format: 'pem',
+        },
+        privateKeyEncoding: {
+            type: 'pkcs8',
+            format: 'pem',
+        },
     });
+
+    console.log(privateKey + 'private key');
+
+    return {
+        publicKey,
+        privateKey,
+    };
 }
 
 

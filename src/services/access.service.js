@@ -147,8 +147,8 @@ class AccessService {
         if (!match) throw new AuthFailureError("Authentication failed");
 
         //3
-        const {publicKey, privateKey}  = generateKeyPair()
-
+        const { publicKey, privateKey } = await generateKeyPair()
+        
         //4
         const { _id: userId } = foundShop._id;
         const tokens = await createTokenPair(
@@ -191,8 +191,8 @@ class AccessService {
 
         if (newShop) {
             // create public key, private key
-            const {publicKey, privateKey} = generateKeyPair()
-            console.log({ privateKey, publicKey });
+            const {publicKey, privateKey} = await generateKeyPair()
+            
 
             const keyStore = await keyTokenService.createKeyToken({
                 userId: newShop._id,
