@@ -91,6 +91,8 @@ class CartService {
 
 
     static async getListUserCart({ userId }) {
+
+        console.log('userId', userId);
         return await cart.findOne({
             cart_userId: +userId
         }).lean()

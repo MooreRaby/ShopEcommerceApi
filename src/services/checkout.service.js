@@ -30,7 +30,7 @@ class CheckoutService {
             const { shopId, shop_discounts = [], item_products = [] } = shop_order_ids[ i ]
             //check product available
             const checkProductServer = await checkProductByServer(item_products)
-            console.log('checkProductServer::, checkProductServer')
+            console.log('checkProductServer::', checkProductServer)
             if (!checkProductServer[ 0 ]) throw new BadRequestError('order wrong!!!')
 
             // tong tien don hang
@@ -52,6 +52,8 @@ class CheckoutService {
             if (shop_discounts.length > 0) {
                 // gia su chi co mot discount
                 // get amount discount
+
+                console.log(shop_discounts,'   xxx',checkProductServer);
                 const { totalPrice = 0, discount = 0 } = await getDiscountAmount({
                     codeId: shop_discounts[ 0 ].codeId,
                     userId,
@@ -65,6 +67,11 @@ class CheckoutService {
                     itemCheckout.priceApplyDiscount = checkoutPrice - discount
                 }
             }
+
+            //tong  thanh toan cuoi cung
+
+            checkout_order.totalCheckout += itemCheckout.priceApplyDiscount
+            shop_order_ids_new.push(itemCheckout)
 
 
         }
