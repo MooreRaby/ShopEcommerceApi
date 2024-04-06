@@ -27,9 +27,10 @@ class AccessService {
 
         if (keyStore.refreshTokensUsed.includes(refreshToken)) {
             await KeyTokenService.deleteKeyById(userId)
-            console.log('aaaaaaaa')
             throw new ForbiddenError('Something went wrong! Please login')
         }
+
+        if(keyStore.refreshToken !== refreshToken) throw new AuthFailureError('shop not registered')
 
         //check userId
         const foundShop = await findByEmail({ email })
@@ -48,18 +49,7 @@ class AccessService {
             }
         })
 
-        // await keytokenModel.updateOne(
-        //     { user: holderToken.userId },
-        //     {
-        //         $set: {
-        //             refreshToken: tokens.refreshToken
-        //         },
-        //         $addToSet: {
-        //             refreshTokensUsed: refreshToken
-        //         }
-        //     }
-        // )
-
+       
         return {
             user,
             tokens

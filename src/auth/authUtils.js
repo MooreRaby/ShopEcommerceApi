@@ -5,6 +5,7 @@ const { asyncHandler } = require('../helpers/asyncHandler');
 const { AuthFailureError, NotFoundError } = require('../core/error.response');
 const { findByUserId } = require('../services/keyToken.service');
 const { generateKeyPairSync } = require('node:crypto');
+const ms = require('ms');
 
 const HEADER = {
     API_KEY: 'x-api-key',
@@ -24,9 +25,7 @@ const createTokenPair = async (payload, publicKey, privateKey) => {
 
         const refreshToken = await JWT.sign(payload, privateKey, {
             algorithm: 'RS256', //sử dụng với asymmetric cryptography
-
-            expiresIn: '2M',
-
+            expiresIn: '60 days',
         })
 
         JWT.verify(accessToken, publicKey, (err, decode) => {
@@ -111,8 +110,6 @@ const authenticationV2 = asyncHandler(async (req, res, next) => {
     const accessToken = req.headers[ HEADER.AUTHORIZATION ]
     if (!accessToken) throw new AuthFailureError('Invalid Request')
     try {
-        console.log(accessToken, "xxxxxxxx  ")
-        console.log(keyStore.publicKey, " yyyyyyyyyyy ")
 
         const decodeUser = JWT.verify(accessToken, keyStore.publicKey)
         if (userId !== decodeUser.userId) throw new AuthFailureError(' Invalid Userid')
