@@ -3,8 +3,20 @@ require('dotenv').config()
 const compression = require('compression')
 const express = require('express')
 const { default: helmet } = require('helmet')
+const cors = require('cors')
 const morgan = require('morgan')
 const app = express()
+
+//cors
+
+const corsOptions = {
+    origin: 'http://localhost:3000',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+    optionsSuccessStatus: 204
+}
+
+app.use(cors(corsOptions))
 
 //middleware
 app.use(morgan("combined"))
@@ -23,6 +35,8 @@ app.use(express.urlencoded({
  
 //init db
 require('./dbs/init.mongodb')
+const initRedis = require('./dbs/init.redis')
+initRedis.initRedis()
 // const { checkOverload} = require('./helpers/check.connect')
 // checkOverload()
 //init routes

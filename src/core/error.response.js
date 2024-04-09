@@ -57,11 +57,18 @@ class ForbiddenError extends ErrorResponse {
     }
 }
 
+class RedisErrorResponse extends ErrorResponse {
+
+    constructor (message = ReasonPhrases.INTERNAL_SERVER_ERROR, statusCode = StatusCodes.INTERNAL_SERVER_ERROR) {
+        super(message, statusCode)
+    }
+}
 
 module.exports = {
     ConflictRequestError,
     BadRequestError,
     AuthFailureError,
     NotFoundError,
-    ForbiddenError
+    ForbiddenError,
+    RedisErrorResponse
 }

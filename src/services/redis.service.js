@@ -3,7 +3,20 @@
 const redis = require('redis');
 const { promisify } = require('util');
 const { reservationInventory } = require('../models/repositories/inventory.repo');
-const redisClient = redis.createClient()
+// const redisClient = redis.createClient()
+
+// redisClient.ping((err, result) => {
+//     if (err) {
+//         console.log('Error connecting to redis: ' + err);
+//     } else {
+//         console.log(`connected to redis`);
+//     }
+// })
+
+const { getRedis} = require('../dbs/init.redis')
+
+const {instanceConnect: redisClient } = getRedis()
+
 
 const pexpire = promisify(redisClient.pExpire).bind(redisClient)
 const setnxAsync = promisify(redisClient.setNX).bind(redisClient)
