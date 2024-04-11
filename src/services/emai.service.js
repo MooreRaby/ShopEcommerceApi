@@ -7,9 +7,9 @@ const transport = require('../dbs/init.nodemailer');
 const { NotFoundError } = require('../core/error.response');
 const { replacePlaceholder } = require('../utils');
 
-const link_verify = process.env.link_verify || `http://localhost:3000/cgp/welcome-back?token=`
+const link_verify = process.env.link_verify || `http://localhost:3000/v1/api/user/welcome-back?token=`
 
-const sendEmailLinkVerify = ({
+const sendEmailLinkVerify = async ({
     html,
     toEmail,
     subject = 'Xác nhận Email đăng ký',
@@ -17,9 +17,10 @@ const sendEmailLinkVerify = ({
 }) => {
     try {
         const mailOptions = {
-            from: ' "Milkiway <lephuquy2003official@gmail.com>"',
+            from: 'Milkiway <lephuquy2003official@gmail.com>"',
             to: toEmail,
             subject,
+            text,
             html
         }
 
@@ -56,16 +57,19 @@ const sendEmailToken = async ({
         const content = replacePlaceholder(
             template.tem_html,
             {
-                link_verify: link_verify + '' + token
+                link_verify: link_verify + '' + token.otp_token
             }
         )
+
 
         //4. send email
         sendEmailLinkVerify({
             html: content,
             toEmail: email,
-            subject: 'Vui lòng xác nhận địa chỉ email đăng ký milkiway'
-        }).catch
+            subject: 'Vui lòng xác nhận địa chỉ email đăng ký milkyway'
+        }).catch(err => console.log(err))
+
+        return 1
     } catch (error) {
 
     }

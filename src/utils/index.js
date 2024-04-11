@@ -46,9 +46,11 @@ const updateNestedObjectParser = obj => {
 
 const replacePlaceholder = (template, params) => {
     Object.keys(params).forEach(k => {
-        const placeholder = `{{ ${k} }}`  // {{ verify }}
+        const placeholder = `{{${k}}}`  // {{ verify }}
         template = template.replace(new RegExp(placeholder,'g'), params[k])
     })
+
+    return template
 }
 
 module.exports = {
