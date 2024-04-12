@@ -14,8 +14,9 @@ class uploadController {
         }).send(res);
     }
 
-    uploadFileThumb = async (req, res, next) => {
+    uploadFileThumb = async (req, res, next) => {// upload single thumb
         const { file } = req
+        console.log(file + 'file uploaded');
         if (!file) {
             throw new BadRequestError("file missing")
         }
@@ -26,6 +27,22 @@ class uploadController {
             })
         }).send(res);
     }
+
+    uploadMultipleFileThumb = async (req, res, next) => {// upload multiple file
+        const { files } = req;
+        console.log(files.length + ' files uploaded');
+        if (!files || files.length === 0) {
+            throw new BadRequestError("files missing");
+        }
+        const metadata = [];
+        for (const file of files) {
+            metadata.push(await uploadImageFromLocal({ path: file.path }));
+        }
+        new SuccessResponse({
+            message: 'upload successfully',
+            metadata
+        }).send(res);
+    };
 }
 
 module.exports = new uploadController();

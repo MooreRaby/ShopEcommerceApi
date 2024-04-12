@@ -9,9 +9,8 @@ const router = express.Router()
 
 // router.use(authenticationV2)
 router.post('/product/upload', asyncHandler(uploadController.uploadFile))
-router.post('/product/thumb',uploadDisk.single('file'), asyncHandler(uploadController.uploadFileThumb))
-
-
+// router.post('/product/thumb',uploadDisk.single('file'), asyncHandler(uploadController.uploadFileThumb))
+router.post('/product/thumb', uploadDisk.array('file', 12), asyncHandler(uploadController.uploadMultipleFileThumb))
 
 
 module.exports = router
