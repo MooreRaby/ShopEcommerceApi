@@ -1,7 +1,8 @@
 'use strict';
 
 const AccessService = require("../services/access.service");
-const {OK,CREATED, SuccessResponse} = require('../core/success.response')
+const { OK, CREATED, SuccessResponse } = require('../core/success.response');
+const { BadRequestError, ErrorResponse } = require("../core/error.response");
 
 class AccessController {
 
@@ -25,15 +26,31 @@ class AccessController {
     logout = async (req, res, next) => {
         new SuccessResponse({
             message: 'Logged out successfully',
-            metadata: await AccessService.logout( req.keyStore )
+            metadata: await AccessService.logout(req.keyStore)
         }).send(res)
     }
 
 
     login = async (req, res, next) => {
-        new SuccessResponse({
-            metadata: await AccessService.login( req.body)
-        }).send(res)
+        const { email } = req.body
+        if (!email) {
+            throw new BadRequestError('email missing.....')
+        }
+        const sendData = Object.assign(
+            { requestId: req.requestId },
+            req.body
+        )
+        const { code, ...result } = await AccessService.login(sendData)
+        if (code === 200) {
+            new SuccessResponse({
+                metadata: result
+            }).send(res)
+        } else {
+            new ErrorResponse({
+                metadata: result
+            }).send(res)
+        }
+
     }
 
     signUp = async (req, res, next) => {
@@ -44,7 +61,7 @@ class AccessController {
             options: {
                 limit: 10
             }
-       }).send(res)
+        }).send(res)
 
     }
 
@@ -64,7 +81,7 @@ class AccessController {
     }
 
     verifyEmail = async (req, res, next) => {
-        
+
     }
 }
 

@@ -93,7 +93,52 @@ const roleList = async ({
     search = ''
 }) => {
     try {
+        // 1. user id
 
+
+
+        //2 .list role
+        const roles = await ROLE.aggregate([
+            {
+                $unwind: '$rol_grants'
+            },
+            {
+                $lookup: {
+                    from: 'Resources',
+                    localField: 'rol_grants.resource',
+                    foreignField: '_id',
+                    as: 'resource'
+                }
+            },
+            {
+                $unwind: '$resource'
+            },
+            {
+                $project: {
+                    role: '$rol_name',
+                    resource: '$resource.src_name',
+                    action: '$rol_grants.actions',
+                    attributes: '$rol_grants.attributes'
+                }
+            },
+            {
+                $unwind: '$action'
+            },
+            {
+                $project: {
+                    _id: 0,
+                    role: 1,
+                    resource: 1,
+                    action: '$action',
+                    attributes: 1
+                }
+            }
+            
+
+        ])
+
+
+        return roles
     } catch (error) {
 
     }

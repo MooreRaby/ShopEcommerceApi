@@ -11,6 +11,7 @@ const ReasonStatusCode = {
     CONFLICT: 'Conflict error'
 }
 
+const myloggerLog = require('../loggers/mylogger.log');
 const {
     StatusCodes,
     ReasonPhrases
@@ -21,8 +22,12 @@ class ErrorResponse extends Error {
     constructor (message, status) {
         super(message)
         this.status = status
+
+        // log the error use winston
+        myloggerLog.error(this.message,['/api/v1/login', 'vv2379', {error: 'Bad request error'}])
     }
 }
+
 class ConflictRequestError extends ErrorResponse {
     constructor (message = ReasonStatusCode.CONFLICT, statusCode = StatusCode.FORBIDDEN) {
         super(message, statusCode)

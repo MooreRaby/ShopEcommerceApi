@@ -127,6 +127,7 @@ class AccessService {
          get info data
         */
     static login = async ({ email, password, refreshToken = null }) => {
+        
         const foundShop = await findByEmail({ email });
         //1
         if (!foundShop) {
@@ -161,7 +162,8 @@ class AccessService {
                 fileds: [ "_id", "name", "email" ],
                 object: foundShop
             }),
-            tokens
+            tokens,
+            code: 200
         }
     }
 
