@@ -9,7 +9,8 @@ const { checkEmailToken } = require('./otp.service');
 const KeyTokenService = require('./keyToken.service');
 const { createTokenPair, verifyJWT, generateKeyPair } = require("../auth/authUtils");
 const bcrypt = require('bcrypt');
-const { getInfoData } = require('../utils');
+const { getInfoData, convertToObjectIdMongodb } = require('../utils');
+const { findRoleByName } = require('../models/repositories/role.repo');
 
 const newUserService = async ({
     email = null,
@@ -43,7 +44,7 @@ const checkLoginEmailTokenService = async ({
     token
 }) => {
     try {
-        
+
         //1  . check token in mode otp
         console.log(token + ' 1111');
 
@@ -61,15 +62,24 @@ const checkLoginEmailTokenService = async ({
 
         // new User
         const passwordHash = await bcrypt.hash(email, 8);
-       
         console.log('yyyyyyyy');
+
+        // check role
+        let role, roleId;
+        role = await findRoleByName('user'); 
+        if (!role ) {
+            throw new ErrorResponse('role not found');
+        } else {
+            roleId = convertToObjectIdMongodb(role._id);
+        }
 
         const newUser = await createUser({
             usr_id: 1,
             usr_slug: 'abcxyz',
+            usr_email: email,
             usr_name: email,
             usr_password: passwordHash,
-            usr_role: ''
+            usr_role: roleId
         })
 
 

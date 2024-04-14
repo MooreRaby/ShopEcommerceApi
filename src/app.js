@@ -19,8 +19,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions))
 
-
-
 //middleware
 app.use(morgan("combined"))
 app.use(helmet())

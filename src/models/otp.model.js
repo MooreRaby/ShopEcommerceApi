@@ -11,7 +11,7 @@ const shopSchema = new Schema({
     otp_email: { type: String, require: true },
     otp_status: { type: String, default: 'pending', enum: [ 'pending', 'active', 'block' ] },
     expireAt: {
-        type: Date, default: Date.now(), expires: 60
+        type: Date, default: Date.now(), expires: 300
     }
 }, {
     timestamps: true,

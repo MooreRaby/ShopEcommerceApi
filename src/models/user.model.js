@@ -18,7 +18,8 @@ const userSchema = new Schema({
     usr_avatar: { type: String, default: '' },
     usr_date_of_birth: { type: Date, default: null },
     usr_role: { type: Schema.Types.ObjectId, ref: 'Role' },
-    usr_status: { type: String, default: 'pending', enum: [ 'pending', 'active', 'block' ] }
+    usr_status: { type: String, default: 'pending', enum: [ 'pending', 'active', 'block' ] },
+    address: { type: String, default: "" },
 }, {
     timestamps: true,
     collection: COLLECTION_NAME

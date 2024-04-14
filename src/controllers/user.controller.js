@@ -1,5 +1,6 @@
 'use strict';
 
+const { response } = require("express");
 const { SuccessResponse } = require("../core/success.response");
 const { newUserService, checkLoginEmailTokenService } = require("../services/user.service");
 
@@ -25,7 +26,10 @@ class UserController {
             token
         })
 
-        new SuccessResponse(respond).send(res)
+        new SuccessResponse({
+            message: "check registration",
+            metadata: respond
+        }).send(res)
     }
 }
 
