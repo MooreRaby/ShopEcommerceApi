@@ -120,7 +120,6 @@ const authenticationV2 = asyncHandler(async (req, res, next) => {
     } catch (error) {
         throw error
     }
-
 })
 
 const generateKeyPair = async () => {

@@ -1,142 +1,188 @@
 'use strict';
 
-const USER = require('../models/user.model')
-const { createUser } = require('../models/repositories/user.repo')
-const { SuccessResponse } = require('../core/success.response')
+const USER = require('../models/user.model');
+const { createUser } = require('../models/repositories/user.repo');
 const { BadRequestError, ErrorResponse } = require('../core/error.response');
-const { sendEmailToken } = require('./emai.service');
+const { sendEmailToken } = require('./email.service');
 const { checkEmailToken } = require('./otp.service');
 const KeyTokenService = require('./keyToken.service');
 const { createTokenPair, verifyJWT, generateKeyPair } = require("../auth/authUtils");
 const bcrypt = require('bcrypt');
 const { getInfoData, convertToObjectIdMongodb } = require('../utils');
 const { findRoleByName } = require('../models/repositories/role.repo');
+const { getRedis } = require('../dbs/init.redis'); // Import getRedis
 
-const newUserService = async ({
-    email = null,
-    captcha = null,
-}) => {
-    //1 check email exists
-    const user = await USER.findOne({ email }).lean()
+const { instanceConnect: redisClient } = getRedis();
 
-    // 2. if exits
-    if (user) {
-        return BadRequestError({
-            message: 'Email already exists',
-            statusCode: 409
-        })
-    }
+const newUserService = async ({ email = null, captcha = null }) => {
+    const cachedUser = await redisClient.get(`user:${email}`);
+    let existingUser;
 
-    //3 send token via email user
-    const result = await sendEmailToken({
-        email
-    })
-
-    return {
-        message: 'verified email user',
-        metadata: {
-            token: result
+    if (cachedUser) {
+        existingUser = JSON.parse(cachedUser);
+    } else {
+        existingUser = await USER.findOne({ usr_email: email }).lean();
+        if (existingUser) {
+            await redisClient.set(`user:${email}`, JSON.stringify(existingUser), 'EX', 600); // Cache for 10 mins
         }
     }
-}
 
-const checkLoginEmailTokenService = async ({
-    token
-}) => {
-    try {
-
-        //1  . check token in mode otp
-        console.log(token + ' 1111');
-
-        const { otp_email: email, otp_token } = await checkEmailToken({ token })
-        console.log(email + " has email  ", otp_token);
-
-        if (!email) throw new ErrorResponse('token not found')
-
-        // 2. check email exists in user model
-        const hasUser = await findUserByEmailWithLogin({
-            email
-        })
-
-        if (hasUser) throw new ErrorResponse('Email already exists')
-
-        // new User
-        const passwordHash = await bcrypt.hash(email, 8);
-        console.log('yyyyyyyy');
-
-        // check role
-        let role, roleId;
-        role = await findRoleByName('user'); 
-        if (!role ) {
-            throw new ErrorResponse('role not found');
-        } else {
-            roleId = convertToObjectIdMongodb(role._id);
-        }
-
-        const newUser = await createUser({
-            usr_id: 1,
-            usr_slug: 'abcxyz',
-            usr_email: email,
-            usr_name: email,
-            usr_password: passwordHash,
-            usr_role: roleId
-        })
-
-
-        if (newUser) {
-            console.log('created new user');
-            // create public key, private key
-            const { publicKey, privateKey } = await generateKeyPair()
-
-
-            const keyStore = await KeyTokenService.createKeyToken({
-                userId: newUser.usr_id,
-                publicKey,
-                privateKey
-            });
-
-            if (!keyStore) {
+    if (existingUser) {
+        if (existingUser.isEmailVerified) {
+            if (existingUser.usr_status === 'active') {
+                throw new BadRequestError({
+                    message: 'Email already registered and completed',
+                    statusCode: 409,
+                });
+            } else if (existingUser.usr_status === 'pending') {
+                const result = await sendEmailToken({ email });
                 return {
-                    code: "xxxx",
-                    message: "error: keyString is required"
+                    message: 'Verification email resent',
+                    metadata: { token: result },
                 };
             }
-
-            // created token pair
-            const tokens = await createTokenPair(
-                { userId: newUser.usr_id, email },
-                publicKey,
-                privateKey
-            );
-            console.log(`Created token success`, tokens);
-
+        } else {
+            const result = await sendEmailToken({ email });
             return {
-                code: 201,
-                message: 'verify success',
-                metadata: {
-                    user: getInfoData({
-                        fileds: [ "usr_id", "usr_name", "usr_email" ],
-                        object: newUser
-                    }),
-                    tokens
-                }
+                message: 'Verification email resent',
+                metadata: { token: result },
             };
         }
+    } else {
+        const result = await sendEmailToken({ email });
+        const user = await USER.create({ usr_email: email, isEmailVerified: false, usr_status: 'pending' });
+        if (!user) throw new ErrorResponse("user not created");
 
-    } catch (error) {
-        console.log(error);
+        await redisClient.set(`user:${email}`, JSON.stringify(user), 'EX', 600); // Cache for 10 mins
+
+        return {
+            message: 'Verification email sent',
+            metadata: { token: result },
+        };
     }
-}
+};
 
+const verifyOTPService = async ({ token }) => {
+    const verifiedEmail = await checkEmailToken({ token });
 
-const findUserByEmailWithLogin = async ({
-    email
-}) => {
-    const user = await USER.findOne({ usr_email: email }).lean()
-    return user
+    if (!verifiedEmail) {
+        throw new ErrorResponse('Invalid OTP');
+    }
+
+    const user = await USER.findOneAndUpdate(
+        { usr_email: verifiedEmail.otp_email },
+        { isEmailVerified: true },
+        { new: true }
+    );
+
+    if (!user) {
+        throw new ErrorResponse('User not found');
+    }
+
+    await redisClient.set(`user:${user.usr_email}`, JSON.stringify(user), 'EX', 600); // Update cache
+
+    return {
+        code: 200,
+        message: 'Email verified',
+        metadata: getInfoData({
+            fileds: [ "_id", "usr_email", "isEmailVerified" ],
+            object: user
+        })
+    };
+};
+
+const completeRegistrationService = async ({ email, password, username }) => {
+    const cachedUser = await redisClient.get(`user:${email}`);
+    let user;
+
+    if (cachedUser) {
+        user = JSON.parse(cachedUser);
+    } else {
+        user = await USER.findOne({ usr_email: email }).lean();
+        if (user) {
+            await redisClient.set(`user:${email}`, JSON.stringify(user), 'EX', 600); // Cache for 10 mins
+        }
+    }
+
+    if (!user) {
+        throw new ErrorResponse('Email not found');
+    }
+
+    if (!user.isEmailVerified) {
+        throw new ErrorResponse('Email not verified');
+    }
+
+    if (user.usr_status === 'active' && user.usr_password) {
+        throw new ErrorResponse('Registration already completed');
+    }
+
+    const passwordHash = await bcrypt.hash(password, 8);
+
+    const role = await findRoleByName('user');
+    if (!role) {
+        throw new ErrorResponse('Role not found');
+    }
+
+    const updatedUser = await USER.findOneAndUpdate(
+        { usr_email: email },
+        {
+            usr_slug: username,
+            usr_name: username,
+            usr_password: passwordHash,
+            usr_role: convertToObjectIdMongodb(role._id),
+            usr_status: 'active'
+        },
+        { new: true }
+    );
+
+    await redisClient.set(`user:${email}`, JSON.stringify(updatedUser), 'EX', 600); // Update cache
+
+    const { publicKey, privateKey } = await generateKeyPair();
+
+    const keyStore = await KeyTokenService.createKeyToken({
+        userId: updatedUser._id,
+        publicKey,
+        privateKey
+    });
+
+    if (!keyStore) {
+        throw new ErrorResponse("Error: keyString is required");
+    }
+
+    const tokens = await createTokenPair(
+        { userId: updatedUser._id, email },
+        publicKey,
+        privateKey
+    );
+
+    return {
+        code: 201,
+        message: 'Signup complete',
+        metadata: {
+            user: getInfoData({
+                fileds: [ "_id", "usr_name", "usr_email" ],
+                object: updatedUser
+            }),
+            tokens
+        }
+    };
+};
+
+const findUserByEmailWithLogin = async ({ email }) => {
+    const cachedUser = await redisClient.get(`user:${email}`);
+    if (cachedUser) {
+        return JSON.parse(cachedUser);
+    }
+
+    const user = await USER.findOne({ usr_email: email }).lean();
+    if (user) {
+        await redisClient.set(`user:${email}`, JSON.stringify(user), 'EX', 600); // Cache for 10 mins
+    }
+    return user;
 }
 
 module.exports = {
     newUserService,
-    checkLoginEmailTokenService
-}
+    verifyOTPService,
+    completeRegistrationService
+};

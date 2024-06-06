@@ -17,6 +17,6 @@ const shopSchema = new Schema({
     timestamps: true,
     collection: COLLECTION_NAME
 });
-
+ 
 //Export the model
 module.exports = model(DOCUMENT_NAME, shopSchema);

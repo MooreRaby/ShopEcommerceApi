@@ -2,7 +2,8 @@
 
 const mongoose = require('mongoose');
 const { db: { host, name, port } } = require('../configs/config.mongodb');
-const connectString = `mongodb://${host}:${port}/${name}`;
+// const connectString = process.env.mongo_url || `mongodb://${host}:${port}/${name}`;
+const connectString =  `mongodb://${host}:${port}/${name}`;
 
 const { countConnect } = require('../helpers/check.connect'); // Assuming this function exists
 
@@ -27,10 +28,7 @@ class Database {
 
         try {
             await mongoose.connect(connectString, {
-                maxPoolSize: 50,
-                useNewUrlParser: true, // Ensure compatibility with newer MongoDB versions
-                useUnifiedTopology: true, // For Mongoose 6+
-                // Consider adding reconnect options if necessary (see below)
+                maxPoolSize: 50
             });
 
             logConnection('Connected successfully');

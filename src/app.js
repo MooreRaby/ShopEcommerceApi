@@ -1,17 +1,19 @@
 
 require('dotenv').config()
-const compression = require('compression')
-const express = require('express')
-const { default: helmet } = require('helmet')
-const cors = require('cors')
-const morgan = require('morgan')
-const app = express()
-const { v4: uuid } = require('uuid')
+const compression       = require('compression'),
+    express             = require('express'),
+    { default: helmet } = require('helmet'),
+    cors                = require('cors'),
+    morgan              = require('morgan'),
+    app                 = express(),
+    { v4: uuid }        = require('uuid'),
+    passport            = require('passport'),
+    passportConfig      = require('./configs/passport.config')
 
 //cors
 
 const corsOptions = {
-    origin: 'http://localhost:3000',
+    origin: 'http://localhost:3000/',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
     optionsSuccessStatus: 204
@@ -53,6 +55,13 @@ const myloggerLog = require('./loggers/mylogger.log')
 initRedis.initRedis()
 // const { checkOverload} = require('./helpers/check.connect')
 // checkOverload()
+
+// passport
+app.use(passport.initialize())
+// passport config
+
+passportConfig(passport)
+
 //init routes
 app.use('/', require('./routes'))
 

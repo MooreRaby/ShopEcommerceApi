@@ -14,7 +14,6 @@ const router = express.Router()
 router.post('/role', asyncHandler(newRole))
 router.get('/roles', asyncHandler(listRoles))
 
-
 router.post('/resource', asyncHandler(newResource))
 router.get('/resources', asyncHandler(listResources))
 

@@ -29,48 +29,61 @@ const handleTimeoutError = () => {
     }, REDIS_CONNECT_TIMEOUT)
 }
 
-const handleEventConnection = ({
-    connectionRedis
-}) => {
-
+const handleEventConnection = (connectionRedis) => {
     connectionRedis.on(statusConnectRedis.CONNECT, () => {
-
-        console.log(`connectionRedis - connection status: connected`);
-        clearTimeout(connectionTimeout)
-    })
+        console.log('connectionRedis - connection status: connected');
+        clearTimeout(connectionTimeout);
+    });
 
     connectionRedis.on(statusConnectRedis.END, () => {
-        console.log(`connectionRedis - connection status: disconnected`);
-
-        //connect retry
-        handleTimeoutError()
-    })
+        console.log('connectionRedis - connection status: disconnected');
+        handleTimeoutError();
+    });
 
     connectionRedis.on(statusConnectRedis.RECONNECT, () => {
-        console.log(`connectionRedis - connection status: reconnecting`);
-        clearTimeout(connectionTimeout)
-    })
+        console.log('connectionRedis - connection status: reconnecting');
+        clearTimeout(connectionTimeout);
+    });
+
     connectionRedis.on(statusConnectRedis.ERROR, (err) => {
         console.log(`connectionRedis - connection status: error ${err}`);
-        handleTimeoutError()
-    })
+        handleTimeoutError();
+    });
 
-}
+    connectionRedis.on(statusConnectRedis.READY, () => {
+        console.log('connectionRedis - connection status: ready');
+        clearTimeout(connectionTimeout);
+    });
+};
 
-const initRedis = () => {
-    const instanceRedis = redis.createClient()
-    client.instanceConnect = instanceRedis
-    handleEventConnection({
-        connectionRedis: instanceRedis
-    })
-}
+const initRedis = async () => {
+    const instanceRedis = redis.createClient();
+    client.instanceConnect = instanceRedis;
+    handleEventConnection(instanceRedis);
+
+    try {
+        await instanceRedis.connect();
+    } catch (err) {
+        console.error(`Failed to connect to Redis: ${err.message}`);
+        handleTimeoutError();
+    }
+};
 
 
 const getRedis = () => client
 
-const closeRedis = () => {
-
-}
+const closeRedis = async () => {
+    if (client) {
+        try {
+            await client.quit();
+            console.log(`Redis connection closed`);
+        } catch (err) {
+            console.error(`Failed to close Redis connection: ${err.message}`);
+        } finally {
+            client = null; // Clear the client reference
+        }
+    }
+};
 
 module.exports = {
     initRedis,

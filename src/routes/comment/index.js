@@ -14,6 +14,4 @@ router.get('', asyncHandler(CommentController.getCommentsByParentId))
 router.delete('', asyncHandler(CommentController.deleteComment))
 
 
-
-
 module.exports = router

@@ -29,7 +29,7 @@ class uploadController {
     }
 
     uploadMultipleFileThumb = async (req, res, next) => {// upload multiple file
-        const { files } = req;
+        const { files } = req.body;
         console.log(files.length + ' files uploaded');
         if (!files || files.length === 0) {
             throw new BadRequestError("files missing");
@@ -38,6 +38,7 @@ class uploadController {
         for (const file of files) {
             metadata.push(await uploadImageFromLocal({ path: file.path }));
         }
+        
         new SuccessResponse({
             message: 'upload successfully',
             metadata

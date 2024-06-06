@@ -6,8 +6,9 @@ const crypto = require('crypto');
 const OTP = require('../models/otp.model')
 
 const generatorTokenRandom = () => {
-    const token = crypto.randomInt(0, Math.pow(2, 32))
-    return token
+    // Tạo một số ngẫu nhiên trong khoảng từ 100000 đến 999999
+    const token = crypto.randomInt(100000, 1000000);
+    return token;
 }
 
 const newOtp = async ({

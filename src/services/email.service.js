@@ -7,7 +7,7 @@ const transport = require('../dbs/init.nodemailer');
 const { NotFoundError } = require('../core/error.response');
 const { replacePlaceholder } = require('../utils');
 
-const link_verify = process.env.link_verify || `http://localhost:3000/v1/api/user/welcome-back?token=`
+const link_verify = process.env.link_verify || `https://wise-iguana-hot.ngrok-free.app/v1/api/user/welcome-back?token=`
 
 const sendEmailLinkVerify = async ({
     html,
@@ -57,10 +57,9 @@ const sendEmailToken = async ({
         const content = replacePlaceholder(
             template.tem_html,
             {
-                link_verify: link_verify + '' + token.otp_token
+                verify_code:  token.otp_token
             }
         )
-
 
         //4. send email
         sendEmailLinkVerify({

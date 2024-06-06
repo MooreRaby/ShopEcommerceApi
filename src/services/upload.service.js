@@ -41,7 +41,6 @@ const uploadImageFromLocal = async ({
                 height: 100,
                 width: 100,
                 format: 'jpg',
-                
             })
         }
     } catch (error) {
